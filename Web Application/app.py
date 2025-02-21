@@ -1,5 +1,6 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from typing import List, Optional
 from pydantic import BaseModel
 from datetime import datetime
@@ -8,91 +9,146 @@ import cv2
 from ultralytics import YOLO
 import uuid
 import os
-from PIL import Image
-import io
+import base64
 import logging
+from logging.config import dictConfig
 
-# Set up logging
-logging.basicConfig(level=logging.DEBUG)
+# Logging configuration
+dictConfig({
+    "version": 1,
+    "formatters": {
+        "default": {
+            "format": "%(asctime)s - %(levelname)s - %(message)s",
+        }
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "default",
+        }
+    },
+    "root": {
+        "level": "INFO",
+        "handlers": ["console"],
+    },
+})
+
 logger = logging.getLogger(__name__)
 
-# Create FastAPI app
+# FastAPI app
 app = FastAPI()
 
-# Add CORS middleware with updated settings
+# CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5174", "http://localhost:3000", "http://127.0.0.1:5174"],  # Add your frontend URL
-    allow_credentials=True,
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Initialize YOLO model
-try:
-    model = YOLO('best.pt')
-    logger.info("YOLO model loaded successfully")
-except Exception as e:
-    logger.error(f"Failed to load YOLO model: {str(e)}")
-    raise
-
-# Create uploads directory if it doesn't exist
+# Configuration
 UPLOAD_DIR = "uploads"
-if not os.path.exists(UPLOAD_DIR):
-    os.makedirs(UPLOAD_DIR)
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+MODEL_PATH = "best.pt"  # Update with your model path
 
-# Store detection history in memory
+# Load YOLO model
+model = YOLO(MODEL_PATH)
+
+# In-memory storage for detection history
 detection_history = []
+
+# Models
+class DetectionBox(BaseModel):
+    x1: float
+    y1: float
+    x2: float
+    y2: float
+    confidence: float
+    class_name: str
 
 class DetectionResult(BaseModel):
     id: str
     timestamp: datetime
     type: str
     objects: List[str]
+    boxes: List[DetectionBox]
     imageUrl: Optional[str] = None
+    base64_image: Optional[str] = None
 
+# Helper functions
+def process_detection(img, results):
+    detected_objects = []
+    detection_boxes = []
+    
+    # Get image dimensions
+    height, width = img.shape[:2]
+    
+    # Draw boxes on image
+    for r in results:
+        boxes = r.boxes
+        for box in boxes:
+            # Get box coordinates
+            x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
+            confidence = float(box.conf[0].cpu().numpy())
+            class_id = int(box.cls[0].cpu().numpy())
+            class_name = r.names[class_id]
+            
+            # Add to lists
+            detected_objects.append(class_name)
+            detection_boxes.append(DetectionBox(
+                x1=float(x1),
+                y1=float(y1),
+                x2=float(x2),
+                y2=float(y2),
+                confidence=confidence,
+                class_name=class_name
+            ))
+            
+            # Draw on image
+            cv2.rectangle(img, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
+            label = f"{class_name}: {confidence:.2f}"
+            cv2.putText(img, label, (int(x1), int(y1)-10), 
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+    
+    # Convert image to base64
+    _, buffer = cv2.imencode('.jpg', img)
+    base64_image = base64.b64encode(buffer).decode('utf-8')
+    
+    return detected_objects, detection_boxes, base64_image
+
+# Endpoints
 @app.post("/detect")
 async def detect_objects(file: UploadFile = File(...)):
     try:
-        logger.info(f"Receiving detection request for file: {file.filename}")
+        logger.info(f"Processing detection request for file: {file.filename}")
         
-        # Read image file
         contents = await file.read()
         nparr = np.frombuffer(contents, np.uint8)
         img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         
         if img is None:
-            logger.error("Failed to decode image")
             raise HTTPException(status_code=400, detail="Invalid image format")
         
-        # Run detection
-        logger.debug("Running object detection")
         results = model(img)
+        detected_objects, detection_boxes, base64_image = process_detection(img, results)
         
-        # Get detected objects
-        detected_objects = []
-        for r in results:
-            for c in r.boxes.cls:
-                object_name = r.names[int(c)]
-                detected_objects.append(object_name)
-                logger.debug(f"Detected object: {object_name}")
-        
-        if not detected_objects:
-            logger.warning("No objects detected in the image")
-        
-        # Create unique detection record
         detection = DetectionResult(
             id=str(uuid.uuid4()),
             timestamp=datetime.now(),
             type="live",
-            objects=list(set(detected_objects))
+            objects=list(set(detected_objects)),
+            boxes=detection_boxes,
+            base64_image=base64_image
         )
         
-        # Add to history
         detection_history.append(detection)
-        logger.info(f"Detection completed. Found {len(detection.objects)} unique objects")
+        logger.info(f"Detection completed. Found {len(detection.objects)} objects")
         
-        return {"objects": detection.objects}
+        return {
+            "objects": detection.objects,
+            "boxes": detection.boxes,
+            "base64_image": detection.base64_image
+        }
         
     except Exception as e:
         logger.error(f"Error during object detection: {str(e)}")
@@ -122,14 +178,7 @@ async def upload_image(file: UploadFile = File(...)):
         # Run detection
         logger.debug("Running object detection")
         results = model(img)
-        
-        # Get detected objects
-        detected_objects = []
-        for r in results:
-            for c in r.boxes.cls:
-                object_name = r.names[int(c)]
-                detected_objects.append(object_name)
-                logger.debug(f"Detected object: {object_name}")
+        detected_objects, detection_boxes, base64_image = process_detection(img, results)
         
         # Create unique detection record
         detection = DetectionResult(
@@ -137,14 +186,20 @@ async def upload_image(file: UploadFile = File(...)):
             timestamp=datetime.now(),
             type="upload",
             objects=list(set(detected_objects)),
-            imageUrl=file_path
+            boxes=detection_boxes,
+            imageUrl=file_path,
+            base64_image=base64_image
         )
         
         # Add to history
         detection_history.append(detection)
         logger.info(f"Upload and detection completed. Found {len(detection.objects)} unique objects")
         
-        return {"objects": detection.objects}
+        return {
+            "objects": detection.objects,
+            "boxes": detection.boxes,
+            "base64_image": detection.base64_image
+        }
         
     except Exception as e:
         logger.error(f"Error during image upload and detection: {str(e)}")

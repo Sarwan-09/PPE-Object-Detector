@@ -7,7 +7,9 @@ type DetectionResult = {
   timestamp: Date;
   type: 'live' | 'upload';
   objects: string[];
+  boxes: { x1: number; y1: number; x2: number; y2: number; confidence: number; class_name: string }[];
   imageUrl?: string;
+  base64_image?: string;
 };
 
 type Tab = {
@@ -24,7 +26,11 @@ function App() {
   const [isDragging, setIsDragging] = useState(false);
   const [detectionHistory, setDetectionHistory] = useState<DetectionResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [detectedObjects, setDetectedObjects] = useState<string[]>([]);
+  const [detectionBoxes, setDetectionBoxes] = useState<DetectionResult['boxes']>([]);
+  const [detectionImage, setDetectionImage] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -35,13 +41,15 @@ function App() {
     { id: 'about', label: 'About', icon: <Info className="w-5 h-5" /> }
   ];
 
-  const addToHistory = (type: 'live' | 'upload', objects: string[], imageUrl?: string) => {
+  const addToHistory = (type: 'live' | 'upload', objects: string[], boxes: DetectionResult['boxes'], imageUrl?: string, base64_image?: string) => {
     const newDetection: DetectionResult = {
       id: crypto.randomUUID(),
       timestamp: new Date(),
       type,
       objects,
-      imageUrl
+      boxes,
+      imageUrl,
+      base64_image
     };
     setDetectionHistory((prev) => [newDetection, ...prev]);
   };
@@ -124,17 +132,32 @@ function App() {
     }
   };
 
-  // Detect objects in live video stream
+  const drawBoxesOnCanvas = (canvas: HTMLCanvasElement, boxes: DetectionResult['boxes']) => {
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    boxes.forEach((box) => {
+      const { x1, y1, x2, y2, class_name, confidence } = box;
+      ctx.strokeStyle = '#00FF00';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+      ctx.fillStyle = '#00FF00';
+      ctx.font = '14px Arial';
+      ctx.fillText(`${class_name} (${(confidence * 100).toFixed(1)}%)`, x1, y1 - 5);
+    });
+  };
+
   const detectLiveObjects = async () => {
-    if (!videoRef.current) return;
+    if (!videoRef.current || !canvasRef.current) return;
 
     setIsLoading(true);
     try {
-      const canvas = document.createElement('canvas');
-      canvas.width = videoRef.current.videoWidth;
-      canvas.height = videoRef.current.videoHeight;
+      const canvas = canvasRef.current;
       const ctx = canvas.getContext('2d');
       if (ctx) {
+        canvas.width = videoRef.current.videoWidth;
+        canvas.height = videoRef.current.videoHeight;
         ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
         const imageBlob = await new Promise<Blob | null>((resolve) =>
           canvas.toBlob(resolve, 'image/jpeg')
@@ -148,8 +171,11 @@ function App() {
             headers: { 'Content-Type': 'multipart/form-data' }
           });
 
-          const { objects } = response.data;
-          addToHistory('live', objects);
+          const { objects, boxes, base64_image } = response.data;
+          setDetectedObjects(objects);
+          setDetectionBoxes(boxes);
+          setDetectionImage(base64_image);
+          addToHistory('live', objects, boxes, undefined, base64_image);
         }
       }
     } catch (err) {
@@ -160,7 +186,6 @@ function App() {
     }
   };
 
-  // Detect objects in uploaded image
   const detectUploadedObjects = async () => {
     if (!selectedImage) return;
 
@@ -173,8 +198,11 @@ function App() {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
-      const { objects } = response.data;
-      addToHistory('upload', objects, previewUrl || undefined);
+      const { objects, boxes, base64_image } = response.data;
+      setDetectedObjects(objects);
+      setDetectionBoxes(boxes);
+      setDetectionImage(base64_image);
+      addToHistory('upload', objects, boxes, previewUrl || undefined, base64_image);
     } catch (err) {
       console.error('Error detecting objects:', err);
       alert('Failed to detect objects. Please try again.');
@@ -183,7 +211,6 @@ function App() {
     }
   };
 
-  // Fetch detection history from backend
   const fetchDetectionHistory = async () => {
     try {
       const response = await axios.get('http://localhost:8000/history');
@@ -208,6 +235,12 @@ function App() {
       }
     };
   }, [previewUrl]);
+
+  useEffect(() => {
+    if (canvasRef.current && detectionBoxes.length > 0) {
+      drawBoxesOnCanvas(canvasRef.current, detectionBoxes);
+    }
+  }, [detectionBoxes]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
@@ -281,6 +314,10 @@ function App() {
                 muted
                 className={`w-full h-full object-cover ${isCameraOn ? 'block' : 'hidden'}`}
               />
+              <canvas
+                ref={canvasRef}
+                className="absolute inset-0 w-full h-full"
+              />
             </div>
 
             {isCameraOn && (
@@ -292,6 +329,22 @@ function App() {
                 >
                   {isLoading ? 'Detecting...' : 'Detect Objects'}
                 </button>
+              </div>
+            )}
+
+            {detectedObjects.length > 0 && (
+              <div className="mt-6">
+                <h3 className="text-lg font-semibold text-gray-800">Detected Objects:</h3>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {detectedObjects.map((obj, index) => (
+                    <span
+                      key={index}
+                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
+                    >
+                      {obj}
+                    </span>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -364,6 +417,33 @@ function App() {
                 </div>
               </div>
             )}
+
+            {detectedObjects.length > 0 && (
+              <div className="mt-6">
+                <h3 className="text-lg font-semibold text-gray-800">Detected Objects:</h3>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {detectedObjects.map((obj, index) => (
+                    <span
+                      key={index}
+                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
+                    >
+                      {obj}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {detectionImage && (
+              <div className="mt-6">
+                <h3 className="text-lg font-semibold text-gray-800">Detection Result:</h3>
+                <img
+                  src={`data:image/jpeg;base64,${detectionImage}`}
+                  alt="Detection Result"
+                  className="mt-2 rounded-lg max-h-96 object-contain"
+                />
+              </div>
+            )}
           </div>
         )}
         {activeTab === 'history' && (
@@ -399,9 +479,9 @@ function App() {
                         </div>
                       </div>
                     </div>
-                    {detection.imageUrl && (
+                    {detection.base64_image && (
                       <img
-                        src={detection.imageUrl}
+                        src={`data:image/jpeg;base64,${detection.base64_image}`}
                         alt="Detection"
                         className="mt-2 rounded-lg max-h-40 object-cover"
                       />
