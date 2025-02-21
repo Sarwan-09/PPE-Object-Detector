@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Image as ImageIcon, History, Info, Video, VideoOff, Upload, X, Clock } from 'lucide-react';
+import { Camera, Image as ImageIcon, History, Info, Video, VideoOff, Upload, X, Clock, Trash2 } from 'lucide-react';
 import axios from 'axios';
 
 type DetectionResult = {
@@ -53,6 +53,10 @@ function App() {
       base64_image
     };
     setDetectionHistory((prev) => [newDetection, ...prev]);
+  };
+
+  const deleteFromHistory = (id: string) => {
+    setDetectionHistory((prev) => prev.filter((item) => item.id !== id));
   };
 
   const startCamera = async () => {
@@ -481,6 +485,12 @@ function App() {
                           {detection.timestamp.toLocaleString()}
                         </div>
                       </div>
+                      <button
+                        onClick={() => deleteFromHistory(detection.id)}
+                        className="p-2 text-gray-500 hover:text-red-500 transition-colors"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
                     </div>
                     {detection.base64_image && (
                       <img
@@ -508,6 +518,7 @@ function App() {
             )}
           </div>
         )}
+        
         {activeTab === 'about' && (
           <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-xl p-6">
             <h2 className="text-xl font-semibold mb-4 text-gray-800">About</h2>
