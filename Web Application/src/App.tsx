@@ -1,6 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Camera, Image as ImageIcon, History, Info, Video, VideoOff, Upload, X, Clock, Trash2 } from 'lucide-react';
 import axios from 'axios';
+import results from './results.png'; 
+import confusion_matrix from './confusion_matrix.png'; 
+import labels from './labels.jpg';
+import val_batch1_labels from './val_batch1_labels.jpg';
+
 
 type DetectionResult = {
   id: string;
@@ -266,7 +271,7 @@ function App() {
       {/* Header */}
       <header className="bg-gradient-to-r from-indigo-600 to-purple-600 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h1 className="text-2xl font-bold py-4 text-white">AI Object Detector</h1>
+          <h1 className="text-2xl font-bold py-4 text-white">AI Object Detector (PPE)</h1>
         </div>
       </header>
 
@@ -523,7 +528,8 @@ function App() {
   <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-xl p-6">
     <h2 className="text-xl font-semibold mb-6 text-gray-800">About</h2>
     <div className="space-y-6 text-gray-700">
-      <div>
+      {/* Introduction */}
+      <div className="animate-fade-in">
         <h3 className="text-lg font-semibold text-gray-800 mb-2">
           AI for Personal Protective Equipment (PPE) Detection in Construction Sites
         </h3>
@@ -532,7 +538,8 @@ function App() {
         </p>
       </div>
 
-      <div>
+      {/* Team Members */}
+      <div className="animate-fade-in">
         <h4 className="text-lg font-semibold text-gray-800 mb-2">Team Members</h4>
         <ul className="list-disc list-inside text-sm">
           <li><strong>Sarwan Shafeeq</strong> (Team Leader)</li>
@@ -546,7 +553,8 @@ function App() {
         </p>
       </div>
 
-      <div>
+      {/* Project Overview */}
+      <div className="animate-fade-in">
         <h4 className="text-lg font-semibold text-gray-800 mb-2">Project Overview</h4>
         <div className="space-y-4">
           <div>
@@ -564,7 +572,8 @@ function App() {
         </div>
       </div>
 
-      <div>
+      {/* Dataset and Model Training */}
+      <div className="animate-fade-in">
         <h4 className="text-lg font-semibold text-gray-800 mb-2">Dataset and Model Training</h4>
         <div className="space-y-4">
           <div>
@@ -584,23 +593,63 @@ function App() {
             <p className="text-sm">
               The model was evaluated using standard machine learning metrics, and its performance is summarized as follows:
             </p>
-            <ul className="list-disc list-inside text-sm">
-              <li><strong>Confusion Matrix (Normalized):</strong> See attached image: <code>confusion_matrix_normalized.png</code></li>
-              <li><strong>Detection Results:</strong> See attached image: <code>results.png</code></li>
-              <li><strong>Labels Used in Training:</strong> See attached image: <code>labels.jpg</code></li>
-            </ul>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="animate-slide-in-left">
+                <img
+                  src={confusion_matrix}
+                  alt="Confusion Matrix"
+                  className="rounded-lg shadow-md"
+                />
+                <p className="text-sm text-center mt-2">Confusion Matrix</p>
+              </div>
+              <div className="animate-slide-in-right">
+                <img
+                  src={results}
+                  alt="Detection Results"
+                  style={{ height: '85%' }}
+                  className="rounded-lg shadow-md"
+                />
+                <p className="text-sm text-center mt-2">Detection Results</p>
+              </div>
+            </div>
+            
+            <div className="animate-fade-in">
+  <div className="flex justify-between mt-4"> {/* Flex container */}
+    <div className="w-1/2 pr-2"> {/* Left image container */}
+      <img
+        src={labels}
+        alt="Labels Used in Training"
+        className="rounded-lg shadow-md w-full" // Full width of container
+        style={{ height: '75%' }}
+      />
+      <p className="text-sm text-center mt-2">Labels Used in Training</p>
+    </div>
+    <div className="w-1/2 pl-2"> {/* Right image container */}
+      <img
+        src={val_batch1_labels}
+        alt="Validation Batch Labels"
+        className="rounded-lg shadow-md w-full" // Full width of container
+        style={{ height: '75%' }}
+      />
+      <p className="text-sm text-center mt-2">Validation Batch Labels</p>
+    </div>
+  </div>
+
+            </div>
           </div>
         </div>
       </div>
 
-      <div>
+      {/* Model Deployment */}
+      <div className="animate-fade-in">
         <h4 className="text-lg font-semibold text-gray-800 mb-2">Model Deployment</h4>
         <p className="text-sm">
           The model is available in <strong>ONNX</strong> format for deployment on various platforms. It can be integrated into <strong>surveillance cameras</strong> for real-time monitoring and works efficiently on <strong>low-power edge devices</strong> for quick and cost-effective deployment on construction sites.
         </p>
       </div>
 
-      <div>
+      {/* Future Improvements */}
+      <div className="animate-fade-in">
         <h4 className="text-lg font-semibold text-gray-800 mb-2">Future Improvements</h4>
         <ul className="list-disc list-inside text-sm">
           <li>Increasing dataset size for better generalization.</li>
@@ -610,30 +659,34 @@ function App() {
         </ul>
       </div>
 
-      <div>
+      {/* Conclusion */}
+      <div className="animate-fade-in">
         <h4 className="text-lg font-semibold text-gray-800 mb-2">Conclusion</h4>
         <p className="text-sm">
           This project demonstrates the potential of AI in improving safety in high-risk environments like construction sites. By integrating AI-powered PPE detection, we can significantly reduce workplace accidents and protect workers' lives.
         </p>
       </div>
 
-      <div>
+      {/* Project Files and References */}
+      <div className="animate-fade-in">
         <h4 className="text-lg font-semibold text-gray-800 mb-2">Project Files and References</h4>
         <ul className="list-disc list-inside text-sm">
-          <li><code>confusion_matrix_normalized.png</code> – Model performance evaluation.</li>
-          <li><code>labels.jpg</code> – Annotation labels used in training.</li>
+          <li><code>confusion_matrix.png</code> – Model performance evaluation.</li>
           <li><code>results.png</code> – Detection results of our trained model.</li>
+          <li><code>labels.jpg</code> – Annotation labels used in training.</li>
         </ul>
       </div>
 
-      <div className="text-center">
+      {/* Footer */}
+      <div className="text-center animate-fade-in">
         <p className="text-sm text-gray-600">
-          <strong>Developed by ICTE Stage 4 Students</strong>
+          <strong>Developed by ICT Engineering Stage 4 Students</strong>
         </p>
       </div>
     </div>
   </div>
 )}
+
       </main>
     </div>
   );
