@@ -33,6 +33,7 @@ function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const detectionIntervalRef = useRef<number | null>(null);
 
   const tabs: Tab[] = [
     { id: 'live', label: 'Live Detection', icon: <Camera className="w-5 h-5" /> },
@@ -69,6 +70,9 @@ function App() {
       }
       streamRef.current = stream;
       setIsCameraOn(true);
+
+      // Start continuous detection
+      startContinuousDetection();
     } catch (err) {
       console.error('Error accessing camera:', err);
       alert('Unable to access camera. Please make sure you have granted camera permissions.');
@@ -83,6 +87,21 @@ function App() {
       }
       streamRef.current = null;
       setIsCameraOn(false);
+
+      // Stop continuous detection
+      stopContinuousDetection();
+    }
+  };
+
+  const startContinuousDetection = () => {
+    // Run detection every 1 second (adjust interval as needed)
+    detectionIntervalRef.current = window.setInterval(detectLiveObjects, 1000);
+  };
+
+  const stopContinuousDetection = () => {
+    if (detectionIntervalRef.current) {
+      clearInterval(detectionIntervalRef.current);
+      detectionIntervalRef.current = null;
     }
   };
 
@@ -151,7 +170,6 @@ function App() {
   const detectLiveObjects = async () => {
     if (!videoRef.current || !canvasRef.current) return;
 
-    setIsLoading(true);
     try {
       const canvas = canvasRef.current;
       const ctx = canvas.getContext('2d');
@@ -180,9 +198,6 @@ function App() {
       }
     } catch (err) {
       console.error('Error detecting objects:', err);
-      alert('Failed to detect objects. Please try again.');
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -319,18 +334,6 @@ function App() {
                 className="absolute inset-0 w-full h-full"
               />
             </div>
-
-            {isCameraOn && (
-              <div className="mt-4">
-                <button
-                  onClick={detectLiveObjects}
-                  disabled={isLoading}
-                  className="w-full py-2 px-4 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg transition-colors disabled:opacity-50"
-                >
-                  {isLoading ? 'Detecting...' : 'Detect Objects'}
-                </button>
-              </div>
-            )}
 
             {detectedObjects.length > 0 && (
               <div className="mt-6">
