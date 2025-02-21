@@ -17,8 +17,8 @@ This project is an AI-based Personal Protective Equipment (PPE) object detection
 We provide a well-curated dataset for PPE detection, available for training or testing purposes. Additionally, a fully functional web application is connected to this system, allowing you to use the AI-powered PPE detector for free. The web app simplifies access and provides real-time detection capabilities directly through your browser.
 
 You can access the dataset and the web application through the following links:
-- **Dataset**: [Download Here]()
-- **Web Application**: [Access Here]()
+- **Dataset**: [Download Here](https://github.com/Sarwan-09/PPE-Object-Detector/tree/main/PPE-Dataset)
+- **Web Application**: [Access Here](http://glib-veil.surge.sh/)
 
 ---
 
