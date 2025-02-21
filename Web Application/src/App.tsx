@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Camera, Image as ImageIcon, History, Info, Video, VideoOff, Upload, X, Clock } from 'lucide-react';
+import axios from 'axios';
 
 type DetectionResult = {
   id: string;
@@ -22,6 +23,7 @@ function App() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [detectionHistory, setDetectionHistory] = useState<DetectionResult[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -41,7 +43,7 @@ function App() {
       objects,
       imageUrl
     };
-    setDetectionHistory(prev => [newDetection, ...prev]);
+    setDetectionHistory((prev) => [newDetection, ...prev]);
   };
 
   const startCamera = async () => {
@@ -53,7 +55,7 @@ function App() {
           facingMode: 'user'
         }
       });
-      
+
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
       }
@@ -67,7 +69,7 @@ function App() {
 
   const stopCamera = () => {
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current.getTracks().forEach((track) => track.stop());
       if (videoRef.current) {
         videoRef.current.srcObject = null;
       }
@@ -100,7 +102,7 @@ function App() {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    
+
     const file = e.dataTransfer.files[0];
     if (file) {
       handleImageUpload(file);
@@ -122,12 +124,81 @@ function App() {
     }
   };
 
-  // Simulated detection function - replace with actual AI model integration
-  const detectObjects = (type: 'live' | 'upload') => {
-    // Simulated detection results
-    const mockObjects = ['Person', 'Chair', 'Laptop'];
-    addToHistory(type, mockObjects, type === 'upload' ? previewUrl : undefined);
+  // Detect objects in live video stream
+  const detectLiveObjects = async () => {
+    if (!videoRef.current) return;
+
+    setIsLoading(true);
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = videoRef.current.videoWidth;
+      canvas.height = videoRef.current.videoHeight;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+        const imageBlob = await new Promise<Blob | null>((resolve) =>
+          canvas.toBlob(resolve, 'image/jpeg')
+        );
+
+        if (imageBlob) {
+          const formData = new FormData();
+          formData.append('file', imageBlob, 'frame.jpg');
+
+          const response = await axios.post('http://localhost:8000/detect', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+          });
+
+          const { objects } = response.data;
+          addToHistory('live', objects);
+        }
+      }
+    } catch (err) {
+      console.error('Error detecting objects:', err);
+      alert('Failed to detect objects. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  // Detect objects in uploaded image
+  const detectUploadedObjects = async () => {
+    if (!selectedImage) return;
+
+    setIsLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', selectedImage);
+
+      const response = await axios.post('http://localhost:8000/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      const { objects } = response.data;
+      addToHistory('upload', objects, previewUrl || undefined);
+    } catch (err) {
+      console.error('Error detecting objects:', err);
+      alert('Failed to detect objects. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Fetch detection history from backend
+  const fetchDetectionHistory = async () => {
+    try {
+      const response = await axios.get('http://localhost:8000/history');
+      setDetectionHistory(response.data.history);
+    } catch (err) {
+      console.error('Error fetching history:', err);
+      alert('Failed to fetch detection history.');
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'history') {
+      fetchDetectionHistory();
+    }
+  }, [activeTab]);
 
   useEffect(() => {
     return () => {
@@ -196,7 +267,7 @@ function App() {
                 )}
               </button>
             </div>
-            
+
             <div className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden shadow-inner">
               {!isCameraOn && (
                 <div className="absolute inset-0 flex items-center justify-center text-gray-400">
@@ -211,14 +282,15 @@ function App() {
                 className={`w-full h-full object-cover ${isCameraOn ? 'block' : 'hidden'}`}
               />
             </div>
-            
+
             {isCameraOn && (
               <div className="mt-4">
                 <button
-                  onClick={() => detectObjects('live')}
-                  className="w-full py-2 px-4 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg transition-colors"
+                  onClick={detectLiveObjects}
+                  disabled={isLoading}
+                  className="w-full py-2 px-4 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg transition-colors disabled:opacity-50"
                 >
-                  Detect Objects
+                  {isLoading ? 'Detecting...' : 'Detect Objects'}
                 </button>
               </div>
             )}
@@ -227,7 +299,7 @@ function App() {
         {activeTab === 'upload' && (
           <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-xl p-6">
             <h2 className="text-xl font-semibold mb-6 text-gray-800">Image Upload</h2>
-            
+
             {!selectedImage ? (
               <div
                 onDragOver={handleDragOver}
@@ -283,10 +355,11 @@ function App() {
                     </p>
                   </div>
                   <button
-                    onClick={() => detectObjects('upload')}
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-indigo-500 hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+                    onClick={detectUploadedObjects}
+                    disabled={isLoading}
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-indigo-500 hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors disabled:opacity-50"
                   >
-                    Detect Objects
+                    {isLoading ? 'Detecting...' : 'Detect Objects'}
                   </button>
                 </div>
               </div>
