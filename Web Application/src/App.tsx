@@ -520,11 +520,120 @@ function App() {
         )}
         
         {activeTab === 'about' && (
-          <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-xl p-6">
-            <h2 className="text-xl font-semibold mb-4 text-gray-800">About</h2>
-            <p className="text-gray-600">Information about the AI model and application will be displayed here</p>
+  <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-xl p-6">
+    <h2 className="text-xl font-semibold mb-6 text-gray-800">About</h2>
+    <div className="space-y-6 text-gray-700">
+      <div>
+        <h3 className="text-lg font-semibold text-gray-800 mb-2">
+          AI for Personal Protective Equipment (PPE) Detection in Construction Sites
+        </h3>
+        <p className="text-sm">
+          Our AI-powered solution aims to enhance worker safety by monitoring PPE usage in real time, helping to reduce workplace hazards and save lives.
+        </p>
+      </div>
+
+      <div>
+        <h4 className="text-lg font-semibold text-gray-800 mb-2">Team Members</h4>
+        <ul className="list-disc list-inside text-sm">
+          <li><strong>Sarwan Shafeeq</strong> (Team Leader)</li>
+          <li><strong>Aya Faisal</strong> (Member)</li>
+          <li><strong>Rahand Mohammed</strong> (Member)</li>
+          <li><strong>Salman Sabah</strong> (Member)</li>
+          <li><strong>Hasan Maujud</strong> (Member)</li>
+        </ul>
+        <p className="text-sm mt-2">
+          <strong>Supervisor:</strong> M. Karwan
+        </p>
+      </div>
+
+      <div>
+        <h4 className="text-lg font-semibold text-gray-800 mb-2">Project Overview</h4>
+        <div className="space-y-4">
+          <div>
+            <h5 className="text-md font-semibold text-gray-800">Problem Statement</h5>
+            <p className="text-sm">
+              Every day, construction workers face life-threatening risks due to the lack of personal protective equipment (PPE). According to global statistics, a significant number of accidents occur on construction sites due to workers not wearing helmets, vests, and other necessary protective gear.
+            </p>
           </div>
-        )}
+          <div>
+            <h5 className="text-md font-semibold text-gray-800">Solution</h5>
+            <p className="text-sm">
+              Our team has developed an AI-based system that detects whether workers are wearing the required PPE. By deploying this model in construction sites, site managers can ensure compliance and take immediate action when necessary.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <h4 className="text-lg font-semibold text-gray-800 mb-2">Dataset and Model Training</h4>
+        <div className="space-y-4">
+          <div>
+            <h5 className="text-md font-semibold text-gray-800">Dataset Collection</h5>
+            <p className="text-sm">
+              We sourced a dataset from the internet that contains images of people <strong>with and without helmets and vests</strong>. The dataset was annotated using <strong>Annotely</strong>, a powerful annotation tool for object detection.
+            </p>
+          </div>
+          <div>
+            <h5 className="text-md font-semibold text-gray-800">Model and Training</h5>
+            <p className="text-sm">
+              We trained our model using <strong>YOLOv8 Nano</strong>, a lightweight and efficient deep learning model optimized for real-time object detection. The model was trained on <strong>Pytorch</strong> and converted to <strong>ONNX</strong> for broader compatibility and deployment.
+            </p>
+          </div>
+          <div>
+            <h5 className="text-md font-semibold text-gray-800">Accuracy and Performance</h5>
+            <p className="text-sm">
+              The model was evaluated using standard machine learning metrics, and its performance is summarized as follows:
+            </p>
+            <ul className="list-disc list-inside text-sm">
+              <li><strong>Confusion Matrix (Normalized):</strong> See attached image: <code>confusion_matrix_normalized.png</code></li>
+              <li><strong>Detection Results:</strong> See attached image: <code>results.png</code></li>
+              <li><strong>Labels Used in Training:</strong> See attached image: <code>labels.jpg</code></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <h4 className="text-lg font-semibold text-gray-800 mb-2">Model Deployment</h4>
+        <p className="text-sm">
+          The model is available in <strong>ONNX</strong> format for deployment on various platforms. It can be integrated into <strong>surveillance cameras</strong> for real-time monitoring and works efficiently on <strong>low-power edge devices</strong> for quick and cost-effective deployment on construction sites.
+        </p>
+      </div>
+
+      <div>
+        <h4 className="text-lg font-semibold text-gray-800 mb-2">Future Improvements</h4>
+        <ul className="list-disc list-inside text-sm">
+          <li>Increasing dataset size for better generalization.</li>
+          <li>Implementing real-time alerts for immediate safety actions.</li>
+          <li>Deploying on cloud-based solutions for large-scale monitoring.</li>
+          <li>Expanding detection to include <strong>gloves, boots, and goggles</strong>.</li>
+        </ul>
+      </div>
+
+      <div>
+        <h4 className="text-lg font-semibold text-gray-800 mb-2">Conclusion</h4>
+        <p className="text-sm">
+          This project demonstrates the potential of AI in improving safety in high-risk environments like construction sites. By integrating AI-powered PPE detection, we can significantly reduce workplace accidents and protect workers' lives.
+        </p>
+      </div>
+
+      <div>
+        <h4 className="text-lg font-semibold text-gray-800 mb-2">Project Files and References</h4>
+        <ul className="list-disc list-inside text-sm">
+          <li><code>confusion_matrix_normalized.png</code> – Model performance evaluation.</li>
+          <li><code>labels.jpg</code> – Annotation labels used in training.</li>
+          <li><code>results.png</code> – Detection results of our trained model.</li>
+        </ul>
+      </div>
+
+      <div className="text-center">
+        <p className="text-sm text-gray-600">
+          <strong>Developed by ICTE Stage 4 Students</strong>
+        </p>
+      </div>
+    </div>
+  </div>
+)}
       </main>
     </div>
   );
