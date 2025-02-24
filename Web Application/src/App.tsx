@@ -6,7 +6,6 @@ import confusion_matrix from './confusion_matrix.png';
 import labels from './labels.jpg';
 import val_batch1_labels from './val_batch1_labels.jpg';
 
-
 type DetectionResult = {
   id: string;
   timestamp: Date;
@@ -34,6 +33,7 @@ function App() {
   const [detectedObjects, setDetectedObjects] = useState<string[]>([]);
   const [detectionBoxes, setDetectionBoxes] = useState<DetectionResult['boxes']>([]);
   const [detectionImage, setDetectionImage] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<{ text: string; color: string } | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -96,8 +96,7 @@ function App() {
       }
       streamRef.current = null;
       setIsCameraOn(false);
-
-      // Stop continuous detection
+      setStatusMessage(null); // Clear status message
       stopContinuousDetection();
     }
   };
@@ -155,6 +154,7 @@ function App() {
   const clearSelectedImage = () => {
     setSelectedImage(null);
     setPreviewUrl(null);
+    setStatusMessage(null); // Clear status message
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -203,6 +203,15 @@ function App() {
           setDetectionBoxes(boxes);
           setDetectionImage(base64_image);
           addToHistory('live', objects, boxes, undefined, base64_image);
+
+          // Check for person, helmet, and vest
+          if (objects.includes('person') && objects.includes('helmet') && objects.includes('vest')) {
+            setStatusMessage({ text: 'Pass', color: 'green' });
+          } else if (objects.includes('person') && (!objects.includes('helmet') || !objects.includes('vest'))) {
+            setStatusMessage({ text: 'Rejected', color: 'red' });
+          } else {
+            setStatusMessage(null);
+          }
         }
       }
     } catch (err) {
@@ -227,6 +236,15 @@ function App() {
       setDetectionBoxes(boxes);
       setDetectionImage(base64_image);
       addToHistory('upload', objects, boxes, previewUrl || undefined, base64_image);
+
+      // Check for person, helmet, and vest
+      if (objects.includes('person') && objects.includes('helmet') && objects.includes('vest')) {
+        setStatusMessage({ text: 'Pass', color: 'green' });
+      } else if (objects.includes('person') && (!objects.includes('helmet') || !objects.includes('vest'))) {
+        setStatusMessage({ text: 'Rejected', color: 'red' });
+      } else {
+        setStatusMessage(null);
+      }
     } catch (err) {
       console.error('Error detecting objects:', err);
       alert('Failed to detect objects. Please try again.');
@@ -344,6 +362,14 @@ function App() {
               />
             </div>
 
+            {statusMessage && (
+              <div className="mt-6 text-center">
+                <h3 className={`text-4xl font-bold ${statusMessage.color === 'green' ? 'text-green-600' : 'text-red-600'}`}>
+                  {statusMessage.text}
+                </h3>
+              </div>
+            )}
+
             {detectedObjects.length > 0 && (
               <div className="mt-6">
                 <h3 className="text-lg font-semibold text-gray-800">Detected Objects:</h3>
@@ -361,6 +387,7 @@ function App() {
             )}
           </div>
         )}
+
         {activeTab === 'upload' && (
           <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-xl p-6">
             <h2 className="text-xl font-semibold mb-6 text-gray-800">Image Upload</h2>
@@ -430,6 +457,14 @@ function App() {
               </div>
             )}
 
+            {statusMessage && (
+              <div className="mt-6 text-center">
+                <h3 className={`text-4xl font-bold ${statusMessage.color === 'green' ? 'text-green-600' : 'text-red-600'}`}>
+                  {statusMessage.text}
+                </h3>
+              </div>
+            )}
+
             {detectedObjects.length > 0 && (
               <div className="mt-6">
                 <h3 className="text-lg font-semibold text-gray-800">Detected Objects:</h3>
@@ -458,6 +493,7 @@ function App() {
             )}
           </div>
         )}
+
         {activeTab === 'history' && (
           <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-xl p-6">
             <h2 className="text-xl font-semibold mb-6 text-gray-800">Detection History</h2>
@@ -523,170 +559,168 @@ function App() {
             )}
           </div>
         )}
-        
+
         {activeTab === 'about' && (
-  <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-xl p-6">
-    <h2 className="text-xl font-semibold mb-6 text-gray-800">About</h2>
-    <div className="space-y-6 text-gray-700">
-      {/* Introduction */}
-      <div className="animate-fade-in">
-        <h3 className="text-lg font-semibold text-gray-800 mb-2">
-          AI for Personal Protective Equipment (PPE) Detection in Construction Sites
-        </h3>
-        <p className="text-sm">
-          Our AI-powered solution aims to enhance worker safety by monitoring PPE usage in real time, helping to reduce workplace hazards and save lives.
-        </p>
-      </div>
-
-      {/* Team Members */}
-      <div className="animate-fade-in">
-        <h4 className="text-lg font-semibold text-gray-800 mb-2">Team Members</h4>
-        <ul className="list-disc list-inside text-sm">
-          <li><strong>Sarwan Shafeeq</strong> (Team Leader)</li>
-          <li><strong>Aya Faisal</strong> (Member)</li>
-          <li><strong>Rahand Mohammed</strong> (Member)</li>
-          <li><strong>Salman Sabah</strong> (Member)</li>
-          <li><strong>Hasan Maujud</strong> (Member)</li>
-        </ul>
-        <p className="text-sm mt-2">
-          <strong>Supervisor:</strong> M. Karwan
-        </p>
-      </div>
-
-      {/* Project Overview */}
-      <div className="animate-fade-in">
-        <h4 className="text-lg font-semibold text-gray-800 mb-2">Project Overview</h4>
-        <div className="space-y-4">
-          <div>
-            <h5 className="text-md font-semibold text-gray-800">Problem Statement</h5>
-            <p className="text-sm">
-              Every day, construction workers face life-threatening risks due to the lack of personal protective equipment (PPE). According to global statistics, a significant number of accidents occur on construction sites due to workers not wearing helmets, vests, and other necessary protective gear.
-            </p>
-          </div>
-          <div>
-            <h5 className="text-md font-semibold text-gray-800">Solution</h5>
-            <p className="text-sm">
-              Our team has developed an AI-based system that detects whether workers are wearing the required PPE. By deploying this model in construction sites, site managers can ensure compliance and take immediate action when necessary.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Dataset and Model Training */}
-      <div className="animate-fade-in">
-        <h4 className="text-lg font-semibold text-gray-800 mb-2">Dataset and Model Training</h4>
-        <div className="space-y-4">
-          <div>
-            <h5 className="text-md font-semibold text-gray-800">Dataset Collection</h5>
-            <p className="text-sm">
-              We sourced a dataset from the internet that contains images of people <strong>with and without helmets and vests</strong>. The dataset was annotated using <strong>Annotely</strong>, a powerful annotation tool for object detection.
-            </p>
-          </div>
-          <div>
-            <h5 className="text-md font-semibold text-gray-800">Model and Training</h5>
-            <p className="text-sm">
-              We trained our model using <strong>YOLOv8 Nano</strong>, a lightweight and efficient deep learning model optimized for real-time object detection. The model was trained on <strong>Pytorch</strong> and converted to <strong>ONNX</strong> for broader compatibility and deployment.
-            </p>
-          </div>
-          <div>
-            <h5 className="text-md font-semibold text-gray-800">Accuracy and Performance</h5>
-            <p className="text-sm">
-              The model was evaluated using standard machine learning metrics, and its performance is summarized as follows:
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="animate-slide-in-left">
-                <img
-                  src={confusion_matrix}
-                  alt="Confusion Matrix"
-                  className="rounded-lg shadow-md"
-                />
-                <p className="text-sm text-center mt-2">Confusion Matrix</p>
+          <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-xl p-6">
+            <h2 className="text-xl font-semibold mb-6 text-gray-800">About</h2>
+            <div className="space-y-6 text-gray-700">
+              {/* Introduction */}
+              <div className="animate-fade-in">
+                <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                  AI for Personal Protective Equipment (PPE) Detection in Construction Sites
+                </h3>
+                <p className="text-sm">
+                  Our AI-powered solution aims to enhance worker safety by monitoring PPE usage in real time, helping to reduce workplace hazards and save lives.
+                </p>
               </div>
-              <div className="animate-slide-in-right">
-                <img
-                  src={results}
-                  alt="Detection Results"
-                  style={{ height: '85%' }}
-                  className="rounded-lg shadow-md"
-                />
-                <p className="text-sm text-center mt-2">Detection Results</p>
+
+              {/* Team Members */}
+              <div className="animate-fade-in">
+                <h4 className="text-lg font-semibold text-gray-800 mb-2">Team Members</h4>
+                <ul className="list-disc list-inside text-sm">
+                  <li><strong>Sarwan Shafeeq</strong> (Team Leader)</li>
+                  <li><strong>Aya Faisal</strong> (Member)</li>
+                  <li><strong>Rahand Mohammed</strong> (Member)</li>
+                  <li><strong>Salman Sabah</strong> (Member)</li>
+                  <li><strong>Hasan Maujud</strong> (Member)</li>
+                </ul>
+                <p className="text-sm mt-2">
+                  <strong>Supervisor:</strong> M. Karwan
+                </p>
+              </div>
+
+              {/* Project Overview */}
+              <div className="animate-fade-in">
+                <h4 className="text-lg font-semibold text-gray-800 mb-2">Project Overview</h4>
+                <div className="space-y-4">
+                  <div>
+                    <h5 className="text-md font-semibold text-gray-800">Problem Statement</h5>
+                    <p className="text-sm">
+                      Every day, construction workers face life-threatening risks due to the lack of personal protective equipment (PPE). According to global statistics, a significant number of accidents occur on construction sites due to workers not wearing helmets, vests, and other necessary protective gear.
+                    </p>
+                  </div>
+                  <div>
+                    <h5 className="text-md font-semibold text-gray-800">Solution</h5>
+                    <p className="text-sm">
+                      Our team has developed an AI-based system that detects whether workers are wearing the required PPE. By deploying this model in construction sites, site managers can ensure compliance and take immediate action when necessary.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Dataset and Model Training */}
+              <div className="animate-fade-in">
+                <h4 className="text-lg font-semibold text-gray-800 mb-2">Dataset and Model Training</h4>
+                <div className="space-y-4">
+                  <div>
+                    <h5 className="text-md font-semibold text-gray-800">Dataset Collection</h5>
+                    <p className="text-sm">
+                      We sourced a dataset from the internet that contains images of people <strong>with and without helmets and vests</strong>. The dataset was annotated using <strong>Annotely</strong>, a powerful annotation tool for object detection.
+                    </p>
+                  </div>
+                  <div>
+                    <h5 className="text-md font-semibold text-gray-800">Model and Training</h5>
+                    <p className="text-sm">
+                      We trained our model using <strong>YOLOv8 Nano</strong>, a lightweight and efficient deep learning model optimized for real-time object detection. The model was trained on <strong>Pytorch</strong> and converted to <strong>ONNX</strong> for broader compatibility and deployment.
+                    </p>
+                  </div>
+                  <div>
+                    <h5 className="text-md font-semibold text-gray-800">Accuracy and Performance</h5>
+                    <p className="text-sm">
+                      The model was evaluated using standard machine learning metrics, and its performance is summarized as follows:
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="animate-slide-in-left">
+                        <img
+                          src={confusion_matrix}
+                          alt="Confusion Matrix"
+                          className="rounded-lg shadow-md"
+                        />
+                        <p className="text-sm text-center mt-2">Confusion Matrix</p>
+                      </div>
+                      <div className="animate-slide-in-right">
+                        <img
+                          src={results}
+                          alt="Detection Results"
+                          style={{ height: '85%' }}
+                          className="rounded-lg shadow-md"
+                        />
+                        <p className="text-sm text-center mt-2">Detection Results</p>
+                      </div>
+                    </div>
+                    
+                    <div className="animate-fade-in">
+                      <div className="flex justify-between mt-4">
+                        <div className="w-1/2 pr-2">
+                          <img
+                            src={labels}
+                            alt="Labels Used in Training"
+                            className="rounded-lg shadow-md w-full"
+                            style={{ height: '75%' }}
+                          />
+                          <p className="text-sm text-center mt-2">Labels Used in Training</p>
+                        </div>
+                        <div className="w-1/2 pl-2">
+                          <img
+                            src={val_batch1_labels}
+                            alt="Validation Batch Labels"
+                            className="rounded-lg shadow-md w-full"
+                            style={{ height: '75%' }}
+                          />
+                          <p className="text-sm text-center mt-2">Validation Batch Labels</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Model Deployment */}
+              <div className="animate-fade-in">
+                <h4 className="text-lg font-semibold text-gray-800 mb-2">Model Deployment</h4>
+                <p className="text-sm">
+                  The model is available in <strong>ONNX</strong> format for deployment on various platforms. It can be integrated into <strong>surveillance cameras</strong> for real-time monitoring and works efficiently on <strong>low-power edge devices</strong> for quick and cost-effective deployment on construction sites.
+                </p>
+              </div>
+
+              {/* Future Improvements */}
+              <div className="animate-fade-in">
+                <h4 className="text-lg font-semibold text-gray-800 mb-2">Future Improvements</h4>
+                <ul className="list-disc list-inside text-sm">
+                  <li>Increasing dataset size for better generalization.</li>
+                  <li>Implementing real-time alerts for immediate safety actions.</li>
+                  <li>Deploying on cloud-based solutions for large-scale monitoring.</li>
+                  <li>Expanding detection to include <strong>gloves, boots, and goggles</strong>.</li>
+                </ul>
+              </div>
+
+              {/* Conclusion */}
+              <div className="animate-fade-in">
+                <h4 className="text-lg font-semibold text-gray-800 mb-2">Conclusion</h4>
+                <p className="text-sm">
+                  This project demonstrates the potential of AI in improving safety in high-risk environments like construction sites. By integrating AI-powered PPE detection, we can significantly reduce workplace accidents and protect workers' lives.
+                </p>
+              </div>
+
+              {/* Project Files and References */}
+              <div className="animate-fade-in">
+                <h4 className="text-lg font-semibold text-gray-800 mb-2">Project Files and References</h4>
+                <ul className="list-disc list-inside text-sm">
+                  <li><code>confusion_matrix.png</code> – Model performance evaluation.</li>
+                  <li><code>results.png</code> – Detection results of our trained model.</li>
+                  <li><code>labels.jpg</code> – Annotation labels used in training.</li>
+                </ul>
+              </div>
+
+              {/* Footer */}
+              <div className="text-center animate-fade-in">
+                <p className="text-sm text-gray-600">
+                  <strong>Developed by ICT Engineering Stage 4 Students</strong>
+                </p>
               </div>
             </div>
-            
-            <div className="animate-fade-in">
-  <div className="flex justify-between mt-4"> {/* Flex container */}
-    <div className="w-1/2 pr-2"> {/* Left image container */}
-      <img
-        src={labels}
-        alt="Labels Used in Training"
-        className="rounded-lg shadow-md w-full" // Full width of container
-        style={{ height: '75%' }}
-      />
-      <p className="text-sm text-center mt-2">Labels Used in Training</p>
-    </div>
-    <div className="w-1/2 pl-2"> {/* Right image container */}
-      <img
-        src={val_batch1_labels}
-        alt="Validation Batch Labels"
-        className="rounded-lg shadow-md w-full" // Full width of container
-        style={{ height: '75%' }}
-      />
-      <p className="text-sm text-center mt-2">Validation Batch Labels</p>
-    </div>
-  </div>
-
-            </div>
           </div>
-        </div>
-      </div>
-
-      {/* Model Deployment */}
-      <div className="animate-fade-in">
-        <h4 className="text-lg font-semibold text-gray-800 mb-2">Model Deployment</h4>
-        <p className="text-sm">
-          The model is available in <strong>ONNX</strong> format for deployment on various platforms. It can be integrated into <strong>surveillance cameras</strong> for real-time monitoring and works efficiently on <strong>low-power edge devices</strong> for quick and cost-effective deployment on construction sites.
-        </p>
-      </div>
-
-      {/* Future Improvements */}
-      <div className="animate-fade-in">
-        <h4 className="text-lg font-semibold text-gray-800 mb-2">Future Improvements</h4>
-        <ul className="list-disc list-inside text-sm">
-          <li>Increasing dataset size for better generalization.</li>
-          <li>Implementing real-time alerts for immediate safety actions.</li>
-          <li>Deploying on cloud-based solutions for large-scale monitoring.</li>
-          <li>Expanding detection to include <strong>gloves, boots, and goggles</strong>.</li>
-        </ul>
-      </div>
-
-      {/* Conclusion */}
-      <div className="animate-fade-in">
-        <h4 className="text-lg font-semibold text-gray-800 mb-2">Conclusion</h4>
-        <p className="text-sm">
-          This project demonstrates the potential of AI in improving safety in high-risk environments like construction sites. By integrating AI-powered PPE detection, we can significantly reduce workplace accidents and protect workers' lives.
-        </p>
-      </div>
-
-      {/* Project Files and References */}
-      <div className="animate-fade-in">
-        <h4 className="text-lg font-semibold text-gray-800 mb-2">Project Files and References</h4>
-        <ul className="list-disc list-inside text-sm">
-          <li><code>confusion_matrix.png</code> – Model performance evaluation.</li>
-          <li><code>results.png</code> – Detection results of our trained model.</li>
-          <li><code>labels.jpg</code> – Annotation labels used in training.</li>
-        </ul>
-      </div>
-
-      {/* Footer */}
-      <div className="text-center animate-fade-in">
-        <p className="text-sm text-gray-600">
-          <strong>Developed by ICT Engineering Stage 4 Students</strong>
-        </p>
-      </div>
-    </div>
-  </div>
-)}
-
+        )}
       </main>
     </div>
   );
